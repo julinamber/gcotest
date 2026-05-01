@@ -1,18 +1,20 @@
 const mysql = require("mysql2/promise");
-const bcrypt = require("bcryptjs");
 
 let pool;
 
 function getPool() {
   if (!pool) {
     pool = mysql.createPool({
-      host: process.env.DB_HOST || "localhost",
+      host: process.env.DB_HOST,
       port: Number(process.env.DB_PORT || 3306),
-      user: process.env.DB_USER || "root",
-      password: process.env.DB_PASS || "", 
-      database: process.env.DB_NAME || "gco_appointments",
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
       waitForConnections: true,
-      connectionLimit: 10
+      connectionLimit: 10,
+      ssl: {
+        rejectUnauthorized: false
+      }
     });
   }
   return pool;
