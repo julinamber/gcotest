@@ -1,0 +1,2 @@
+﻿booking_code,student_email,student_name,counselor_email,counselor_name,service_type,appointment_date,appointment_time,status,reason
+IMP-001,importedstudent@my.xu.edu.ph,Imported Student,counselor@xu.edu.ph,Ma. Angela Reyes,Personal Counseling,2026-04-20,09:00,pending,Imported from sheet

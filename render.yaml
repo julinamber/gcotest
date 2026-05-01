@@ -1,0 +1,57 @@
+services:
+  - type: web
+    name: gco-app
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_BASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
+      - key: ALLOW_PASSWORD_LOGIN
+        value: "true"
+      - key: ENABLE_GOOGLE_OAUTH
+        value: "true"
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_OAUTH_HOSTED_DOMAIN
+        value: ""
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_CONNECT_RETRIES
+        value: "20"
+      - key: DB_CONNECT_RETRY_DELAY_MS
+        value: "3000"
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_SECURE
+        value: "true"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        value: "noreply@xu.edu.ph"
+      - key: NOTIFICATION_ALLOWED_DOMAINS
+        value: "my.xu.edu.ph,xu.edu.ph"
