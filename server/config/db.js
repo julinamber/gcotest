@@ -1,9 +1,27 @@
 const mysql = require("mysql2/promise");
+const bcrypt = require("bcryptjs");
 
 let pool;
 
+function truthyEnv(name) {
+  return /^(1|true|yes)$/i.test(String(process.env[name] ?? "").trim());
+}
+
+function falsyEnv(name) {
+  return /^(0|false|no)$/i.test(String(process.env[name] ?? "").trim());
+}
+
+/** Railway public proxy (*.rlwy.net) expects TLS; local Docker MySQL usually does not. */
+function shouldUseSsl() {
+  if (falsyEnv("DB_SSL")) return false;
+  if (truthyEnv("DB_SSL")) return true;
+  const host = String(process.env.DB_HOST || "").toLowerCase();
+  return host.includes("rlwy.net");
+}
+
 function getPool() {
   if (!pool) {
+    const useSsl = shouldUseSsl();
     pool = mysql.createPool({
       host: process.env.DB_HOST || "localhost",
       port: Number(process.env.DB_PORT || 3306),
@@ -11,7 +29,8 @@ function getPool() {
       password: process.env.DB_PASSWORD || "",
       database: process.env.DB_NAME || "gco_appointments",
       waitForConnections: true,
-      connectionLimit: 10
+      connectionLimit: 10,
+      ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {})
     });
   }
   return pool;
@@ -159,53 +178,44 @@ async function ensurePasswordHashNullable(db) {
   }
 }
 
-module.exports = { getPool, initDb };
-const db = getPool();
-
-// 🔍 Find user by email (for Google login)
+// Google OAuth helpers
 async function findUserByEmail(email) {
+  const db = getPool();
   const [rows] = await db.query("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", [email]);
   return rows[0];
 }
 
-// 🔍 Find user by ID (for sessions)
 async function findUserById(id) {
-  const [rows] = await db.query(
-    "SELECT * FROM users WHERE id = ?",
-    [id]
-  );
+  const db = getPool();
+  const [rows] = await db.query("SELECT * FROM users WHERE id = ?", [id]);
   return rows[0];
 }
 
-// ➕ Create user from Google OAuth (no password)
 async function createUser({ email, name, role, google_id }) {
-  if (!google_id) {
-    throw new Error("OAuth user must include google_id");
-  }
+  if (!google_id) throw new Error("OAuth user must include google_id");
+  const db = getPool();
   const [result] = await db.query(
     `INSERT INTO users (full_name, email, role, auth_provider, google_id, email_verified)
      VALUES (?, ?, ?, 'google', ?, 1)`,
     [name, email, role, google_id]
   );
 
-  return {
-    id: result.insertId,
-    email,
-    full_name: name,
-    name,
-    role,
-    google_id
-  };
+  return { id: result.insertId, email, full_name: name, name, role, google_id };
 }
 
 async function linkGoogleAccount(userId, googleId) {
+  const db = getPool();
   await db.query(
     `UPDATE users SET google_id = ?, auth_provider = 'google', email_verified = 1 WHERE id = ?`,
     [googleId, userId]
   );
 }
 
-module.exports.findUserByEmail = findUserByEmail;
-module.exports.findUserById = findUserById;
-module.exports.createUser = createUser;
-module.exports.linkGoogleAccount = linkGoogleAccount;
+module.exports = {
+  getPool,
+  initDb,
+  findUserByEmail,
+  findUserById,
+  createUser,
+  linkGoogleAccount
+};
